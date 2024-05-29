@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { PrismaClient } from '@prisma/client/edge'
 import { withAccelerate } from '@prisma/extension-accelerate'
 import { decode, sign, verify } from 'hono/jwt'
+import { signinInput, signupInput } from '@kevint11/medium-common';
 
 // Create the main Hono app
 export const userRouter = new Hono<{
@@ -18,11 +19,15 @@ userRouter.post('/signup', async (c) => {
     }).$extends(withAccelerate());
 
     const body = await c.req.json();
+    const { success } = signupInput.safeParse(body);
 
-    // // Additional validation can be added here if necessary
-    // if (!body.email || !body.password || !body.name) {
-    //     return c.json({ error: "Email, password, and name are required" }, 400);
-    // }
+    if(!success) {
+        c.status(411);
+        return c.json({
+            message : "Invalid inputs !"
+        })
+    }
+
     try {
         const user = await prisma.user.create({
             data: {
@@ -54,6 +59,15 @@ userRouter.post('/api/v1/user/signin', async (c) => {
     }).$extends(withAccelerate());
 
     const body = await c.req.json();
+    
+    const { success } = signinInput.safeParse(body);
+
+    if(!success) {
+        c.status(411);
+        return c.json({
+            message : "Invalid inputs !"
+        })
+    }
     const user = await prisma.user.findUnique({
         where: {
             email: body.email,

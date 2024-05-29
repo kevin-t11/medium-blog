@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { PrismaClient } from '@prisma/client/edge'
 import { withAccelerate } from '@prisma/extension-accelerate'
 import { decode, sign, verify } from 'hono/jwt'
+import { CreateBlogInput, UpdateBlogInput, createBlogInput, updateBlogInput } from '@kevint11/medium-common';
 
 // Create the main Hono app
 export const blogRouter = new Hono<{
@@ -45,7 +46,7 @@ blogRouter.use('/*', async (c, next) => {
 });
 
 
-
+//End point - create a blog post
 blogRouter.post('/', async (c) => {
 
     const prisma = new PrismaClient({
@@ -53,6 +54,15 @@ blogRouter.post('/', async (c) => {
     }).$extends(withAccelerate());
 
     const body = await c.req.json();
+
+    const { success } = createBlogInput.safeParse(body);
+
+    if (!success) {
+        c.status(411);
+        return c.json({
+            message: "Invalid inputs !"
+        })
+    }
     const authorId = c.get("userId");
     try {
         const blog = await prisma.post.create({
@@ -75,6 +85,7 @@ blogRouter.post('/', async (c) => {
 });
 
 
+//End point - update a blog post
 blogRouter.put('/', async (c) => {
 
     const prisma = new PrismaClient({
@@ -82,6 +93,16 @@ blogRouter.put('/', async (c) => {
     }).$extends(withAccelerate());
 
     const body = await c.req.json();
+
+    const { success } = updateBlogInput.safeParse(body);
+
+    if (!success) {
+        c.status(411);
+        return c.json({
+            message: "Invalid inputs !"
+        })
+    }
+
     try {
         const blog = await prisma.post.update({
             where: {
@@ -103,6 +124,7 @@ blogRouter.put('/', async (c) => {
         });
     }
 })
+
 // TODO : adding a pagination means not showing the all blog posts but shows only 10 blog posts
 blogRouter.get('/bulk', async (c) => {
     const prisma = new PrismaClient({
@@ -117,6 +139,8 @@ blogRouter.get('/bulk', async (c) => {
 
 })
 
+
+//End point - get a particular blog post
 blogRouter.get('/:id', async (c) => {
 
     const prisma = new PrismaClient({
